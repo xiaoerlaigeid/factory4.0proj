@@ -37,21 +37,28 @@
 int main() {
 	IGrabber myGrabber;
 	bool isInitSuccess = false;
+	bool isSaveImg = false;
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> fildColor(mycloud, "z"); // 按照z字段进行渲染
 	viewer->addPointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
 	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud"); // 设置点云大小
+
+	//传感器初始化
 	while (!isInitSuccess) {
 		isInitSuccess = myGrabber.SensorInit();
 		std::cout << "trying to init" <<std::endl;
 	}
 	std::cout << "init success" << std::endl;
 	Sleep(500);
+
+	//loop
 	while (true) {
 		myGrabber.GetImg();
 		if (myGrabber.isMappingMatrixempty()) continue;
-		//myGrabber.SaveImg();
+		if (isSaveImg) {
+			myGrabber.SaveImg();
+		}
 		pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
 		mycloud = myGrabber.convertDepthToPointXYZ(myGrabber.pBuffer_depth, 200, 200, 700, 1000);
 		std::cout << "the size of cloud is :" << mycloud->size() << std::endl;
