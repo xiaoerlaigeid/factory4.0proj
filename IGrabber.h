@@ -29,6 +29,8 @@ public:
 	bool GetImg();
 	void SaveImg();
 	pcl::PointCloud<pcl::PointXYZ>::Ptr convertDepthToPointXYZ(const UINT16* depthBuffer, int start_x, int start_y, int end_x, int end_y);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr convertDepthRegionToPointXYZ(const UINT16* depthBuffer, cv::Mat* colorimg);
+
 	pcl::PointCloud<pcl::PointXYZ>::Ptr convertDepthToPointXYZGuanFang(UINT16* depthBuffer);
 	//将识别区域的深度图像转换为点云
 	cv::Mat ConvertMat(const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth);// 转换depth图像到cv::Mat  

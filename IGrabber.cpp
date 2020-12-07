@@ -299,6 +299,11 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(const UINT1
 	return cloud;
 }
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthRegionToPointXYZ(const UINT16* depthBuffer, cv::Mat* colorimg)
+{
+	return pcl::PointCloud<pcl::PointXYZ>::Ptr();
+}
+
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZGuanFang( UINT16* depthBuffer)
 {
@@ -332,6 +337,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZGuanFang( UI
 
 	return cloud;
 }
+
 //将深度数据转换为cv::mat
 cv::Mat IGrabber::ConvertMat(const UINT16* pBuffer, int nWidth, int nHeight, USHORT nMinDepth, USHORT nMaxDepth)
 {
