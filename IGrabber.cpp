@@ -212,23 +212,22 @@ bool IGrabber::GetImg(bool IsSaveImg, bool IsShowImg)
 	return true;
 }
 
-void IGrabber::SaveImg()
+void IGrabber::SaveImg(string savepath)
 {
-	string basepath = "E:\\Library\\app大赛\\kinect-data\\";
+	//string basepath = "E:\\Library\\app大赛\\kinect-data\\";
 	//初始时间
-	string begintime = getTime();
 	string command;
-	command = "mkdir -p " + basepath + begintime;
+	command = "mkdir -p " + savepath;
 	system(command.c_str());
 	//
 	//获取时间戳
 	string currtime = getTime();
 	//定义存储路径
-	string savepath = basepath + begintime + "\\";
+	string savepath = savepath + "\\";
 	//存储3种图片
 	cv::imwrite(savepath + currtime + "_gray.png", depthImg_show);
 	cv::imwrite(savepath + currtime +  "_gt.png", depthImg);
-	cv::imwrite(savepath + currtime + "_rgb.jpg", colorImg);
+	cv::imwrite(savepath + currtime + "_rgb.bmp", colorImg);
 	//存储映射关系
 	char* g_buffer = new char[512 * 424 * 21];
 	//char* g_buffer = (char*)malloc(512 * 424 * 20);
@@ -279,7 +278,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(int start_x
 		//UINT16 depth = depthImg.data[i];
 		UINT16 depth = depthArray[i];
 		ColorSpacePoint sp = MappingMatrix[i];
-		if (sp.X >=start_x && sp.X <= end_x && sp.Y >= start_y && sp.Y <= end_y) {
+		//if (sp.X >=start_x && sp.X <= end_x && sp.Y >= start_y && sp.Y <= end_y) {
 			pcl::PointXYZ point;
 			DepthSpacePoint depthSpacePoint = { static_cast<float>(i % depth_width), static_cast<float>(i / depth_width) };
 
@@ -296,7 +295,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(int start_x
 				//std::cout << "push one point" << std::endl;
 			}
 			//out << i % depth_width << "  " << i / depth_width << "  " << depth << endl;
-		}
+		//}
 	}
 	delete[] depthArray;
 	std::cout << "the size of the cloud is: " << cloud->size() << std::endl;
@@ -304,6 +303,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(int start_x
 
 
 	////////////////////////////////////高斯滤波//////////////////////////////////////
+
 	bool isGaussfilter = false;
 	if (isGaussfilter ){
 		//Set up the Gaussian Kernel
@@ -333,7 +333,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(int start_x
 		std::cout << "Convoluted" << std::endl;
 		cloud = outputcloud;
 	}
-	
 	return cloud;
 }
 
