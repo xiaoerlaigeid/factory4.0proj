@@ -223,7 +223,7 @@ void IGrabber::SaveImg(string savepath)
 	//获取时间戳
 	string currtime = getTime();
 	//定义存储路径
-	string savepath = savepath + "\\";
+	 savepath.append("\\");
 	//存储3种图片
 	cv::imwrite(savepath + currtime + "_gray.png", depthImg_show);
 	cv::imwrite(savepath + currtime +  "_gt.png", depthImg);
@@ -359,7 +359,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZGuanFang( UI
 
 			DepthSpacePoint depthSpacePoint = { static_cast<float>(x), static_cast<float>(y) };
 			UINT16 depth = depthBuffer[y * depth_width + x];
-
 
 			// Coordinate Mapping Depth to Camera Space, and Setting PointCloud XYZ
 			CameraSpacePoint cameraSpacePoint = { 0.0f, 0.0f, 0.0f };
