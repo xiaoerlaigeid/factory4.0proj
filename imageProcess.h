@@ -19,7 +19,7 @@ class imageProcess
 		array<int,4> region;
 	public:
 		imageProcess();
-		int processImageGetGreenRegion(Mat& img)
+		int processImageGetGreenRegion(Mat& img);
 
 };
 
