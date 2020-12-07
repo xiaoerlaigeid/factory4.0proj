@@ -1,6 +1,6 @@
 #pragma warning(disable:4996)
 //------------------------------------------------------------------------------
-// read data from kinect, conver the depth data and color data to cv::mat and save it
+// read data from kinect, convert the depth data and color data to cv::mat and save it
 // conver the depth data of the specified area to the point cloud  in the camera coordinate
 // editor: SUN CHANG JIANG
 // date : 2020-12-5
@@ -9,40 +9,22 @@
 
 #include "IGrabber.h"
 #include <pcl/visualization/pcl_visualizer.h>
-
-//boost::mutex updateModelMutex;
-//boost::shared_ptr<pcl::visualization::PCLVisualizer> simpleVis(pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud)
-//{
-//	// --------------------------------------------
-//	// -----Open 3D viewer and add point cloud-----
-//	// --------------------------------------------
-//	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
-//	viewer->setCameraPosition(0, 0, 0, 0, 0, 0, 0, 0, -1);
-//	viewer->setBackgroundColor(0, 0, 0);
-//	viewer->addPointCloud<pcl::PointXYZ>(cloud, "sample cloud");
-//	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "sample cloud");
-//	viewer->initCameraParameters();
-//	return (viewer);
-//}
-//
-//void viewerRunner(boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer)
-//{
-//	while (!viewer->wasStopped())
-//	{
-//		viewer->spinOnce(100);
-//		boost::this_thread::sleep(boost::posix_time::microseconds(100));
-//	}
-//}
+#include <pcl/io/pcd_io.h> //PCL的PCD格式文件的输入输出头文件
+#include <pcl/point_types.h>//PCL对各种格式的点的支持头文件
 
 int main() {
+
 	IGrabber myGrabber;
 	bool isInitSuccess = false;
-	bool isSaveImg = false;
+	//设置是否保存和显示深度和彩色图片
+	bool IsSaveImg = true;
+	bool IsShowImg = false;
+	//pcl viewer初始化及基础参数配置
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> fildColor(mycloud, "z"); // 按照z字段进行渲染
 	viewer->addPointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud"); // 设置点云大小
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud"); // 设置点云大小
 
 	//传感器初始化
 	while (!isInitSuccess) {
@@ -53,19 +35,44 @@ int main() {
 	Sleep(500);
 
 	//loop
+
+	string basepath = "E:\\Library\\app大赛\\kinect-data\\";
+	string begintime = myGrabber.getTime();
+	//初始时间
+	string savepath = basepath + begintime;
+	string command;
+	command = "mkdir -p " + savepath;
+	system(command.c_str());
+	int i = 0;
 	while (true) {
-		myGrabber.GetImg();
+		
+		clock_t start_time = clock(); //用于计算程序运行时间
+
+		myGrabber.GetImg(IsSaveImg, IsShowImg);
 		if (myGrabber.isMappingMatrixempty()) continue;
-		if (isSaveImg) {
-			myGrabber.SaveImg();
+		if (IsSaveImg) {
+			myGrabber.SaveImg(savepath);
 		}
-		pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
-		mycloud = myGrabber.convertDepthToPointXYZ(myGrabber.pBuffer_depth, 200, 200, 700, 1000);
-		std::cout << "the size of cloud is :" << mycloud->size() << std::endl;
-		//pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> fildColor(mycloud, "z"); // 按照z字段进行渲染
-		viewer->updatePointCloud<pcl::PointXYZ>(mycloud, fildColor, "sample cloud");
-		//viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud"); // 设置点云大小
+		//pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
+
+		mycloud = myGrabber.convertDepthToPointXYZ(200, 200, 700, 700);
+
+
+		viewer->updatePointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
+
 		viewer->spinOnce(100);
+		//
+		//文件序列
+		string currtime = to_string(i);
+		//定义存储路径
+		//string savepath = basepath + begintime + "\\";
+		pcl::io::savePCDFileASCII(savepath + "\\" + currtime + "test_pcb", *mycloud);
+
+		clock_t end_time = clock();
+		cout << " data saved success: " << i << std::endl;
+		cout << "The run time is: " << (double)(end_time - start_time) / CLOCKS_PER_SEC << "s" << endl; //输出程序运行时间
+		i++;
 	}
 	return 0;
 }
+

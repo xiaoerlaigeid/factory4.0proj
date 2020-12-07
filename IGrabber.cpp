@@ -1,6 +1,5 @@
 #include "IGrabber.h"
 
-
 IGrabber::IGrabber()
 {
 	
@@ -92,14 +91,14 @@ bool IGrabber::SensorInit()
 	return true;
 }
 
-bool IGrabber::GetImg()
+bool IGrabber::GetImg(bool IsSaveImg, bool IsShowImg)
 {
-	string basepath = "E:\\Library\\app大赛\\kinect-data\\";
+	//string basepath = "E:\\Library\\app大赛\\kinect-data\\";
 
 	UINT nBufferSize_depth = 0;
 	UINT nBufferSize_coloar = 0;
 	RGBQUAD* pBuffer_color = NULL;
-	int imageIndex = 0; //图片编号
+	depthArray = new UINT16[512 * 424]; //保存当前帧的深度数据，用于生成点云
 	IDepthFrame* pDepthFrame = NULL;
 	HRESULT hr = m_pDepthFrameReader->AcquireLatestFrame(&pDepthFrame);
 	if (SUCCEEDED(hr))
@@ -115,8 +114,11 @@ bool IGrabber::GetImg()
 		}
 		if (SUCCEEDED(hr))	{
 			hr = pDepthFrame->AccessUnderlyingBuffer(&nBufferSize_depth, &pBuffer_depth);
-			depthImg_show = ConvertMat(pBuffer_depth, depth_width, depth_height, nDepthMinReliableDistance, nDepthMaxReliableDistance);
-			depthImg = ConvertDepthMat(pBuffer_depth, depth_width, depth_height, nDepthMinReliableDistance, nDepthMaxReliableDistance);
+			hr = pDepthFrame->CopyFrameDataToArray(nBufferSize_depth, reinterpret_cast<UINT16*>(depthArray));
+			if (IsSaveImg || IsShowImg) {
+				depthImg_show = ConvertMat(pBuffer_depth, depth_width, depth_height, nDepthMinReliableDistance, nDepthMaxReliableDistance);
+				depthImg = ConvertDepthMat(pBuffer_depth, depth_width, depth_height, nDepthMinReliableDistance, nDepthMaxReliableDistance);	
+			}
 		}
 	}
 	if (SUCCEEDED(hr))
@@ -159,8 +161,7 @@ bool IGrabber::GetImg()
 		if (SUCCEEDED(hr))	{
 			ICoordinateMapper* pCoordinateMapper;
 			m_pKinectSensor->get_CoordinateMapper(&pCoordinateMapper);
-			pCoordinateMapper->MapDepthFrameToColorSpace(512 * 424, pBuffer, 512 * 424, &MappingMatrix[0]);
-			
+			pCoordinateMapper->MapDepthFrameToColorSpace(512 * 424, pBuffer, 512 * 424, &MappingMatrix[0]);			
 			//
 			//pCoordinateMapper->MapDepthPointToCameraSpace();
 		}
@@ -200,30 +201,33 @@ bool IGrabber::GetImg()
 		SafeRelease(pColorFrame);
 		delete[] m_pColorRGBX;
 	}
-	namedWindow("depth", 0);
-	cv::imshow("depth", depthImg_show);
-	namedWindow("color", 0);
-	cv::imshow("color", colorImg);
+	if (IsShowImg) {
+		namedWindow("depth", 0);
+		//cv::imshow("depth", depthImg_show);
+		cv::imshow("depth", depthImg);
+		namedWindow("color", 0);
+		cv::imshow("color", colorImg);
+	}
+
 	return true;
 }
 
-void IGrabber::SaveImg()
+void IGrabber::SaveImg(string savepath)
 {
-	string basepath = "E:\\Library\\app大赛\\kinect-data\\";
+	//string basepath = "E:\\Library\\app大赛\\kinect-data\\";
 	//初始时间
-	string begintime = getTime();
 	string command;
-	command = "mkdir -p " + basepath + begintime;
+	command = "mkdir -p " + savepath;
 	system(command.c_str());
 	//
 	//获取时间戳
 	string currtime = getTime();
 	//定义存储路径
-	string savepath = basepath + begintime + "\\";
+	string savepath = savepath + "\\";
 	//存储3种图片
 	cv::imwrite(savepath + currtime + "_gray.png", depthImg_show);
 	cv::imwrite(savepath + currtime +  "_gt.png", depthImg);
-	cv::imwrite(savepath + currtime + "_rgb.jpg", colorImg);
+	cv::imwrite(savepath + currtime + "_rgb.bmp", colorImg);
 	//存储映射关系
 	char* g_buffer = new char[512 * 424 * 21];
 	//char* g_buffer = (char*)malloc(512 * 424 * 20);
@@ -255,7 +259,7 @@ void IGrabber::SaveImg()
 	//free(g_buffer);
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(const UINT16* depthBuffer,int start_x, int start_y, int end_x, int end_y)
+pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(int start_x, int start_y, int end_x, int end_y)
 {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
 	int cloudWidth = std::abs(start_x - end_x);
@@ -263,38 +267,71 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr IGrabber::convertDepthToPointXYZ(const UINT1
 	cloud->width = static_cast<uint32_t>(cloudWidth);
 	cloud->height = static_cast<uint32_t>(cloudHeight);
 	cloud->is_dense = false;
-	//cloud->points.resize(cloudWidth * cloudHeight);
 
 	std::vector<pcl::PointXYZ*> pclList;
 	//pcl::PointXYZ* pt = &cloud->points[0];
 	pcl::PointXYZ* pt = NULL;
-	for (int i = 0; i < MappingMatrix.size(); i++,pt++) {
-		//UINT16 depth = *depthBuffer;
-		UINT16 depth = depthImg.data[i];
-		ColorSpacePoint sp = MappingMatrix[i];
-		//std::cout << "the position of the point "<< i <<" : "<< sp.X <<", "<< sp.Y << std::endl;
-		if (sp.X >=start_x && sp.X <= end_x && sp.Y >= start_y && sp.Y <= end_y) {
-			pcl::PointXYZ point;
 
-			DepthSpacePoint depthSpacePoint = { static_cast<float>(i % cloudWidth), static_cast<float>(i/cloudWidth) };
-			//UINT16 depth = depthBuffer[i];
+	//ofstream out("finalpath1.txt");
+
+	for (int i = 0; i < MappingMatrix.size(); i++) {
+		//UINT16 depth = depthImg.data[i];
+		UINT16 depth = depthArray[i];
+		ColorSpacePoint sp = MappingMatrix[i];
+		//if (sp.X >=start_x && sp.X <= end_x && sp.Y >= start_y && sp.Y <= end_y) {
+			pcl::PointXYZ point;
+			DepthSpacePoint depthSpacePoint = { static_cast<float>(i % depth_width), static_cast<float>(i / depth_width) };
 
 			// Coordinate Mapping Depth to Camera Space, and Setting PointCloud XYZ
 			CameraSpacePoint cameraSpacePoint = { 0.0f, 0.0f, 0.0f };
-			m_pMapper->MapDepthPointToCameraSpace(depthSpacePoint, depth, &cameraSpacePoint);
-
+			m_pMapper->MapDepthPointToCameraSpace(depthSpacePoint, depth, &cameraSpacePoint);			
 			point.x = cameraSpacePoint.X;
 			point.y = cameraSpacePoint.Y;
 			point.z = cameraSpacePoint.Z;
 			//std::cout << "the position  of the cameraSpacepoint " << i << " : " << point.x << ", " << point.y << ", " <<point.z<<std::endl;
-			//*pt = point;
-			//pclList.push_back(pt);
-			if (abs(point.x + point.y + point.z) < 100000)
+			if (point.z > 0.03 )
 			{
 				cloud->push_back(point);
+				//std::cout << "push one point" << std::endl;
 			}
-			++depthBuffer;
-		}
+			//out << i % depth_width << "  " << i / depth_width << "  " << depth << endl;
+		//}
+	}
+	delete[] depthArray;
+	std::cout << "the size of the cloud is: " << cloud->size() << std::endl;
+	//out.close();
+
+
+	////////////////////////////////////高斯滤波//////////////////////////////////////
+
+	bool isGaussfilter = false;
+	if (isGaussfilter ){
+		//Set up the Gaussian Kernel
+		pcl::PointCloud<pcl::PointXYZ>::Ptr outputcloud(new pcl::PointCloud<pcl::PointXYZ>);
+		pcl::filters::GaussianKernel<pcl::PointXYZ, pcl::PointXYZ>::Ptr kernel(new pcl::filters::GaussianKernel<pcl::PointXYZ, pcl::PointXYZ>);
+		//Set up the Convolution Filter
+		pcl::filters::Convolution3D <pcl::PointXYZ, pcl::PointXYZ, pcl::filters::GaussianKernel<pcl::PointXYZ, pcl::PointXYZ> > convolution;
+		(*kernel).setSigma(8);
+
+		(*kernel).setThresholdRelativeToSigma(5);
+
+		std::cout << "Kernel made" << std::endl;
+
+		//Set up the KDTreepcl::search::KdTree::Ptr kdtree(new pcl::search::KdTree);
+		pcl::search::KdTree<pcl::PointXYZ>::Ptr kdtree(new pcl::search::KdTree<pcl::PointXYZ>);
+		(*kdtree).setInputCloud(cloud);
+
+		std::cout << "KdTree made" << std::endl;
+
+		//Set up the Convolution Filterpcl::filters::Convolution3D> convolution;
+		convolution.setKernel(*kernel);
+		convolution.setInputCloud(cloud);
+		convolution.setSearchMethod(kdtree);
+		convolution.setRadiusSearch(5);
+		std::cout << "Convolution Start" << std::endl;
+		convolution.convolve(*outputcloud);
+		std::cout << "Convoluted" << std::endl;
+		cloud = outputcloud;
 	}
 	return cloud;
 }
@@ -405,6 +442,7 @@ cv::Mat IGrabber::ConvertMat(const RGBQUAD* pBuffer, int nWidth, int nHeight)
 	{
 		*p_mat = pBuffer->rgbBlue;
 		p_mat++;
+
 		*p_mat = pBuffer->rgbGreen;
 		p_mat++;
 		*p_mat = pBuffer->rgbRed;
