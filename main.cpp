@@ -37,12 +37,13 @@
 int main() {
 	IGrabber myGrabber;
 	bool isInitSuccess = false;
-	bool isSaveImg = false;
+	bool IsSaveImg = false;
+	bool IsShowImg = false;
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
 	pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> fildColor(mycloud, "z"); // 按照z字段进行渲染
 	viewer->addPointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
-	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud"); // 设置点云大小
+	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud"); // 设置点云大小
 
 	//传感器初始化
 	while (!isInitSuccess) {
@@ -53,19 +54,25 @@ int main() {
 	Sleep(500);
 
 	//loop
+	int i = 0;
 	while (true) {
-		myGrabber.GetImg();
+		clock_t start_time = clock();
+
+		myGrabber.GetImg(IsSaveImg, IsShowImg);
 		if (myGrabber.isMappingMatrixempty()) continue;
-		if (isSaveImg) {
+		if (IsSaveImg) {
 			myGrabber.SaveImg();
 		}
 		pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
-		mycloud = myGrabber.convertDepthToPointXYZ(myGrabber.pBuffer_depth, 200, 200, 700, 1000);
-		std::cout << "the size of cloud is :" << mycloud->size() << std::endl;
+		mycloud = myGrabber.convertDepthToPointXYZ(200, 200, 700, 700);
+		//std::cout << "the size of cloud is :" << mycloud->size() << std::endl;
 		//pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> fildColor(mycloud, "z"); // 按照z字段进行渲染
-		viewer->updatePointCloud<pcl::PointXYZ>(mycloud, fildColor, "sample cloud");
+		viewer->updatePointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
 		//viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "sample cloud"); // 设置点云大小
 		viewer->spinOnce(100);
+
+		clock_t end_time = clock();
+		cout << "The run time is: " << (double)(end_time - start_time) / CLOCKS_PER_SEC << "s" << endl;
 	}
 	return 0;
 }
