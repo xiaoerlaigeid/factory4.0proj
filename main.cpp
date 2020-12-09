@@ -11,6 +11,7 @@
 #include <pcl/visualization/pcl_visualizer.h>
 #include <pcl/io/pcd_io.h> //PCL的PCD格式文件的输入输出头文件
 #include <pcl/point_types.h>//PCL对各种格式的点的支持头文件
+#include "imageProcess.h"
 
 int main() {
 
@@ -25,7 +26,7 @@ int main() {
 	pcl::visualization::PointCloudColorHandlerGenericField<pcl::PointXYZ> fildColor(mycloud, "z"); // 按照z字段进行渲染
 	viewer->addPointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
 	viewer->setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 1, "cloud"); // 设置点云大小
-
+	imageProcess imageProcessor;
 	//传感器初始化
 	while (!isInitSuccess) {
 		isInitSuccess = myGrabber.SensorInit();
@@ -54,9 +55,10 @@ int main() {
 			myGrabber.SaveImg(savepath);
 		}
 		//pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
-
-		mycloud = myGrabber.convertDepthToPointXYZ(200, 200, 700, 700);
-
+		imageProcessor.processImageGetGreenRegion(myGrabber.colorImg);
+		for (auto& rect : imageProcessor.rectPoint) {
+			mycloud = myGrabber.convertDepthToPointXYZ(rect.at(0).x, rect.at(0).y, rect.at(1).x, rect.at(1).y);
+		}
 
 		viewer->updatePointCloud<pcl::PointXYZ>(mycloud, fildColor, "cloud");
 

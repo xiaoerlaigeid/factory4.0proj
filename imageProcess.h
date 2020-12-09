@@ -10,17 +10,17 @@ using namespace std;
 class imageProcess
 {
 	private:
-		int iLowH = 15;
-		int iHighH = 25;
-		int iLowS = 43;
-		int iHighS = 255;
-		int iLowV = 46;
-		int iHighV = 255;
-		array<int,4> region;
+		int iLowH = 38;
+		int iHighH = 60;
+		int iLowS = 67;
+		int iHighS = 149;
+		int iLowV = 113;
+		int iHighV = 245;
+
 	public:
 		imageProcess();
 		int processImageGetGreenRegion(Mat& img);
-
+		vector<vector<Point>> rectPoint;
 };
 
 #endif // __IMAGEPROCESS__
