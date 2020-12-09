@@ -39,7 +39,6 @@ int imageProcess::processImageGetGreenRegion(Mat& img)
         vecPoint.push_back(upLeft);
         vecPoint.push_back(downRight);
         rectPoint.push_back(vecPoint);
-
         //»­¾ØÐÎ
         //rectangle(img, r, Scalar(0, 0, 255), 2);
     }

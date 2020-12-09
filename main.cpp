@@ -19,7 +19,7 @@ int main() {
 	bool isInitSuccess = false;
 	//设置是否保存和显示深度和彩色图片
 	bool IsSaveImg = true;
-	bool IsShowImg = false;
+	bool IsShowImg = true;
 	//pcl viewer初始化及基础参数配置
 	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("3D Viewer"));
 	pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
@@ -37,13 +37,15 @@ int main() {
 
 	//loop
 
-	string basepath = "E:\\Library\\app大赛\\kinect-data\\";
+	string basepath = ".\\kinect-data\\";
 	string begintime = myGrabber.getTime();
 	//初始时间
 	string savepath = basepath + begintime;
 	string command;
-	command = "mkdir -p " + savepath;
-	system(command.c_str());
+	if (IsSaveImg) {
+		command = "mkdir -p " + savepath;
+		system(command.c_str());
+	}
 	int i = 0;
 	while (true) {
 		
@@ -54,8 +56,13 @@ int main() {
 		if (IsSaveImg) {
 			myGrabber.SaveImg(savepath);
 		}
+		Sleep(1000);
+
+		//imshow("Thresholded Image", imgThresholded); //show the thresholded image
+		//imshow("Original", myGrabber.colorImg); //show the original image
 		//pcl::PointCloud<pcl::PointXYZ>::Ptr mycloud(new pcl::PointCloud<pcl::PointXYZ>());
 		imageProcessor.processImageGetGreenRegion(myGrabber.colorImg);
+
 		for (auto& rect : imageProcessor.rectPoint) {
 			mycloud = myGrabber.convertDepthToPointXYZ(rect.at(0).x, rect.at(0).y, rect.at(1).x, rect.at(1).y);
 		}
@@ -68,6 +75,7 @@ int main() {
 		string currtime = to_string(i);
 		//定义存储路径
 		//string savepath = basepath + begintime + "\\";
+		if(IsSaveImg)
 		pcl::io::savePCDFileASCII(savepath + "\\" + currtime + "test_pcb", *mycloud);
 
 		clock_t end_time = clock();

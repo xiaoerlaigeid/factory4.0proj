@@ -93,7 +93,6 @@ bool IGrabber::SensorInit()
 
 bool IGrabber::GetImg(bool IsSaveImg, bool IsShowImg)
 {
-	//string basepath = "E:\\Library\\app大赛\\kinect-data\\";
 
 	UINT nBufferSize_depth = 0;
 	UINT nBufferSize_coloar = 0;
@@ -203,8 +202,8 @@ bool IGrabber::GetImg(bool IsSaveImg, bool IsShowImg)
 	}
 	if (IsShowImg) {
 		namedWindow("depth", 0);
-		//cv::imshow("depth", depthImg_show);
-		cv::imshow("depth", depthImg);
+		cv::imshow("depth", depthImg_show);
+		//cv::imshow("depth", depthImg);
 		namedWindow("color", 0);
 		cv::imshow("color", colorImg);
 	}
@@ -214,7 +213,6 @@ bool IGrabber::GetImg(bool IsSaveImg, bool IsShowImg)
 
 void IGrabber::SaveImg(string savepath)
 {
-	//string basepath = "E:\\Library\\app大赛\\kinect-data\\";
 	//初始时间
 	string command;
 	command = "mkdir -p " + savepath;
